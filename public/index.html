@@ -14,10 +14,11 @@
     <script defer src="/__/firebase/7.0.0/firebase-storage.js"></script>
     <!-- initialize the SDK after all desired features are loaded -->
     <script defer src="/__/firebase/init.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/7.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.0.0/firebase-firestore.js"></script>
     <style media="screen">
       body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
+      #message { background: white; max-width: 700px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
       #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
       #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
       #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
@@ -28,18 +29,65 @@
         body, #message { margin-top: 0; background: white; box-shadow: none; }
         body { border-top: 16px solid #ffa100; }
       }
+      .table{
+        display: block;
+        width: 100%;
+      }
+      .row{
+        display: grid;
+        grid-template-columns: 40% 40% 20%;
+      }
+      .header>.cell{
+        border-bottom: 20px; 
+      }
+      .cell{
+        padding: 5px
+      }
+      .cell:nth-child(2){
+        border-left: 1px solid lightgray;
+        border-right: 1px solid lightgray;
+      }
+      .cell>input{
+        height: 30px;
+        width: calc(100% - 5px);
+        border-radius: 5px;
+        border: 1px solid;
+      }
+      .cell>input[type="button"]{
+        height: 30px;
+        width: 100%;
+        background-color: #ffa100;
+        color: white;
+        font-size: 20px;
+      }
     </style>
   </head>
   <body>
     <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+      <h2>Tagmessages</h2>
+      <div class="table">
+        <div class="row header">
+          <div class="cell">Keyword</div>
+          <div class="cell">Link</div>
+          <div class="cell"></div>
+        </div>
+        <div class="row new">
+          <div class="cell"><input type="text" id="keyword"/></div>
+          <div class="cell"><input type="text" id="link"/></div>
+          <div class="cell"><input type="button" id="saveNew" value="+"/></div>
+        </div>
+      </div>
     </div>
     <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script>
+    <script async>
+      firebase.initializeApp({
+        apiKey: 'AIzaSyC1vnxdewfjJEGbenKqD7e_fe3Dx4TAgUo',
+        authDomain: 'gedanken.firebaseapp.com',
+        projectId: 'gedanken-f0f1e'
+      });
+
+      var db = firebase.firestore();
       document.addEventListener('DOMContentLoaded', function() {
         // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
         // // The Firebase SDK is initialized and available here!
@@ -55,11 +103,60 @@
           let app = firebase.app();
           let features = ['auth', 'database', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
           document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
+          getAllLinks().then((data)=>{
+            data.forEach((entry)=>{
+              addRow(entry.keyword,entry.link);
+            })
+          })
         } catch (e) {
           console.error(e);
           document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
         }
       });
+      function insertAfter(newNode, referenceNode) {
+        referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+    }
+      async function getAllLinks(){
+        const snapshot = await db.collection('keywordsToLinks').get()
+        return snapshot.docs.map(doc => doc.data());
+      }
+      function addRow(keyword, link){
+        let row = document.createElement("div")
+        row.className = "row";
+        let keywordCell = document.createElement("div");
+        keywordCell.className = "cell"
+        let linkCell = document.createElement("div");
+        linkCell.className = "cell"
+        let otherCell = document.createElement("div");
+        otherCell.className = "cell"
+        linkCell.innerHTML = "<span>" + link + "</span>";
+        let keywords = "";
+        keyword.forEach(key =>{
+          if(keywords == ""){
+            keywords = key;
+          }else{
+            keywords = keywords + "; " + key;
+          }
+          
+        })
+        keywordCell.innerHTML = "<span>" + keywords + "</span>";
+        row.appendChild(keywordCell);
+        row.appendChild(linkCell);
+        row.appendChild(otherCell);
+        insertAfter(row, document.querySelector(".header"));
+      }
+      document.querySelector("#saveNew").addEventListener("click",()=>{
+        var strKeywords = document.querySelector("#keyword").value;
+        var link = document.querySelector("#link").value;
+        strKeywords = strKeywords.replace(" ","");
+        var keywords = strKeywords.split(";");
+        addRow(keywords,link);
+        db.collection("keywordsToLinks").doc(strKeywords).set({
+            keyword: keywords,
+            link: link
+        })
+      });
+
     </script>
   </body>
 </html>
